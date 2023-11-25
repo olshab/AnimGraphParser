@@ -8,7 +8,7 @@ namespace AnimGraphParser
 {
     public static class Program
     {
-        static string AssetFilePath = @"C:\Users\Oleg\Downloads\ABSub_Survivor00_Locomotion_Regular.uasset";
+        static string AssetFilePath = @"C:\Users\Oleg\Downloads\ABSub_Survivor00_Locomotion_Injured.uasset";
         public static UAsset Asset = new UAsset(AssetFilePath, EngineVersion.VER_UE4_27);
 
         public static List<BakedAnimationStateMachine> StateMachines = new List<BakedAnimationStateMachine>();
@@ -57,7 +57,16 @@ namespace AnimGraphParser
                     break;
                 }
 
-            if (Root is null) throw new Exception("Failed to find Root Node");
+            if (Root is null)
+            {
+                /** This AnimBlueprint is child of another AnimBlueprint */
+                Console.WriteLine("This Animation Blueprint is derived from another blueprint");
+
+                string SuperStruct = AnimBlueprintGeneratedClass.SuperStruct.ToImport(Asset).ObjectName.ToString();
+                Console.WriteLine($"Analyze {SuperStruct} instead");
+                
+                return;
+            }
 
             PrintNodeInfo(new KeyValuePair<string, AnimNode_Base>("", Root));
             Console.WriteLine("\r\n\r\n");
@@ -89,6 +98,9 @@ namespace AnimGraphParser
 
                 foreach (BakedAnimationState State in StateMachine.States)
                 {
+                    if (State.StateRootNodeIndex == -1)
+                        continue;
+
                     AnimNode_Base StateResult =
                         AnimNode_Base.ConvertStructToAnimNode(AnimNodeProperties[AnimNodeProperties.Count - 1 - State.StateRootNodeIndex]);
 

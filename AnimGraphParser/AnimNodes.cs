@@ -55,16 +55,19 @@ namespace AnimGraphParser
                 "AnimNode_BlendSpacePlayer" => new AnimNode_BlendSpacePlayer(AnimNodeStruct),
                 "AnimNode_AimOffsetLookAt" => new AnimNode_AimOffsetLookAt(AnimNodeStruct),
                 "AnimNode_RotationOffsetBlendSpace" => new AnimNode_RotationOffsetBlendSpace(AnimNodeStruct),
+                "AnimNode_SequenceEvaluator" => new AnimNode_SequenceEvaluator(AnimNodeStruct),
                 "AnimNode_SequencePlayer" => new AnimNode_SequencePlayer(AnimNodeStruct),
                 "AnimNode_BlendListByBool" => new AnimNode_BlendListByBool(AnimNodeStruct),
                 "AnimNode_BlendListByEnum" => new AnimNode_BlendListByEnum(AnimNodeStruct),
                 "AnimNode_BlendListByInt" => new AnimNode_BlendListByInt(AnimNodeStruct),
                 "AnimNode_ConvertComponentToLocalSpace" => new AnimNode_ConvertComponentToLocalSpace(AnimNodeStruct),
                 "AnimNode_ConvertLocalToComponentSpace" => new AnimNode_ConvertLocalToComponentSpace(AnimNodeStruct),
+                "AnimNode_LinkedAnimLayer" => new AnimNode_LinkedAnimLayer(AnimNodeStruct),
                 "AnimNode_LinkedAnimGraph" => new AnimNode_LinkedAnimGraph(AnimNodeStruct),
                 "AnimNode_LayeredBoneBlend" => new AnimNode_LayeredBoneBlend(AnimNodeStruct),
                 "AnimNode_LinkedInputPose" => new AnimNode_LinkedInputPose(AnimNodeStruct),
                 "AnimNode_MeshSpaceRefPose" => new AnimNode_MeshSpaceRefPose(AnimNodeStruct),
+                "AnimNode_MultiWayBlend" => new AnimNode_MultiWayBlend(AnimNodeStruct),
                 "AnimNode_RandomPlayer" => new AnimNode_RandomPlayer(AnimNodeStruct),
                 "AnimNode_RefPose" => new AnimNode_RefPose(AnimNodeStruct),
                 "AnimNode_Root" => new AnimNode_Root(AnimNodeStruct),
@@ -189,6 +192,32 @@ namespace AnimGraphParser
 
             StructPropertyData BasePoseNodeStruct = GetNodeStructFromPoseLink(BasePose);
             AddInputNode("BasePose", ConvertStructToAnimNode(BasePoseNodeStruct));
+        }
+    }
+
+    public class AnimNode_SequenceEvaluator : AnimNode_AssetPlayerBase
+    {
+        public string AnimSequencePackageName { get; private set; }
+
+        public AnimNode_SequenceEvaluator(StructPropertyData AnimNodeStruct)
+            : base(AnimNodeStruct)
+        {
+            NodeGraphName = "Play Sequence";
+
+            ObjectPropertyData? Sequence = Program.FindPropertyInStruct(AnimNodeStruct, "Sequence") as ObjectPropertyData;
+            if (Sequence is null) throw new Exception();
+
+            if (!Sequence.IsNull())
+                AnimSequencePackageName =
+                    Sequence.ToImport(Program.Asset).OuterIndex.ToImport(Program.Asset).ObjectName.ToString();
+            else
+                AnimSequencePackageName = string.Empty;
+        }
+
+        public override string GetNodeInfo()
+        {
+            return AnimSequencePackageName != string.Empty ? $"{NodeGraphName} \"{AnimSequencePackageName}\" ({NodeName})"
+                : $"{NodeGraphName} ({NodeName})";
         }
     }
 
@@ -347,12 +376,25 @@ namespace AnimGraphParser
             ObjectPropertyData? InstanceClass = Program.FindPropertyInStruct(AnimNodeStruct, "InstanceClass") as ObjectPropertyData;
             if (InstanceClass is null) throw new Exception();
 
-            InstanceClassPackageName = InstanceClass.ToImport(Program.Asset).OuterIndex.ToImport(Program.Asset).ObjectName.ToString();
+            /** LinkedAnimLayer might not have InstanceClass set */
+            if (!InstanceClass.IsNull())
+                InstanceClassPackageName = InstanceClass.ToImport(Program.Asset).OuterIndex.ToImport(Program.Asset).ObjectName.ToString();
+            else
+                InstanceClassPackageName = "None";
         }
 
         public override string GetNodeInfo()
         {
             return $"{NodeGraphName} \"{InstanceClassPackageName}\" ({NodeName})";
+        }
+    }
+
+    public class AnimNode_LinkedAnimLayer : AnimNode_LinkedAnimGraph
+    {
+        public AnimNode_LinkedAnimLayer(StructPropertyData AnimNodeStruct)
+           : base(AnimNodeStruct)
+        {
+            NodeGraphName = "Linked Anim Layer";
         }
     }
 
@@ -419,6 +461,27 @@ namespace AnimGraphParser
             : base(AnimNodeStruct.Name, AnimNodeStruct.StructType)
         {
             NodeGraphName = "Mesh Space Ref Pose";
+        }
+    }
+
+    public class AnimNode_MultiWayBlend : AnimNode_Base
+    {
+        public AnimNode_MultiWayBlend(StructPropertyData AnimNodeStruct)
+            : base(AnimNodeStruct.Name, AnimNodeStruct.StructType)
+        {
+            NodeGraphName = "Blend Multi";
+
+            ArrayPropertyData? Poses = Program.FindPropertyInStruct(AnimNodeStruct, "Poses") as ArrayPropertyData;
+            if (Poses is null) throw new Exception("Failed to get Poses PoseLinks");
+
+            int Index = 0;
+            foreach (StructPropertyData Pose_PoseLink in Poses.Value.Cast<StructPropertyData>())
+            {
+                StructPropertyData PoseNodeStruct = GetNodeStructFromPoseLink(Pose_PoseLink);
+                AddInputNode(Index.ToString(), ConvertStructToAnimNode(PoseNodeStruct));
+
+                Index++;
+            }
         }
     }
 
