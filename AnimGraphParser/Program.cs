@@ -8,8 +8,8 @@ namespace AnimGraphParser
 {
     public static class Program
     {
-        static string AssetFilePath = @"C:\Users\Oleg\Downloads\ABSub_Survivor00_Locomotion_Injured.uasset";
-        public static UAsset Asset = new UAsset(AssetFilePath, EngineVersion.VER_UE4_27);
+        static string AssetFilePath = @"C:\Program Files (x86)\Steam\steamapps\common\Dead by Daylight\DeadByDaylight\Content\Paks\Output\Exports\DeadByDaylight\Content\Characters\Slashers\Blueprints\Menu\AB_Menu_Slasher03.uasset";
+        public static UAsset Asset = new UAsset(AssetFilePath, EngineVersion.VER_UE4_21);
 
         public static List<BakedAnimationStateMachine> StateMachines = new List<BakedAnimationStateMachine>();
         public static List<StructPropertyData> AnimNodeProperties = new List<StructPropertyData>();        
@@ -47,6 +47,19 @@ namespace AnimGraphParser
                 if (data is StructPropertyData Property && Property.Name.ToString().StartsWith("AnimGraphNode_"))
                     AnimNodeProperties.Add(Property);
             }
+
+
+
+            for (int i = 0; i < AnimNodeProperties.Count; i++)
+            {
+                if (AnimNodeProperties[i].Name.ToString() == "AnimGraphNode_BlendSpacePlayer_99066DD04A880452EB23788481C67EB4")
+                    Console.WriteLine(i);
+            }
+
+
+
+
+
 
             /** Get Root Node */
             AnimNode_Base? Root = null;

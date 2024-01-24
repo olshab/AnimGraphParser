@@ -41,6 +41,9 @@ namespace AnimGraphParser
             IntPropertyData? LinkID = Program.FindPropertyInStruct(PoseLink, "LinkID") as IntPropertyData;
             if (LinkID is null) throw new Exception("Failed to get LinkID");
 
+            if (LinkID.Value == -1)
+                return new StructPropertyData();
+
             return Program.AnimNodeProperties[LinkID.Value];
         }
 
@@ -560,7 +563,13 @@ namespace AnimGraphParser
             StructPropertyData? ComponentPose = Program.FindPropertyInStruct(AnimNodeStruct, "ComponentPose") as StructPropertyData;
             if (ComponentPose is null) throw new Exception("Failed to get ComponentPose PoseLink");
 
+            // FIX for hair anim bp (ComponentPose link is -1)
             StructPropertyData ComponentPoseNodeStruct = GetNodeStructFromPoseLink(ComponentPose);
+            if (ComponentPoseNodeStruct.StructType is null)
+            {
+                return;
+            }
+
             AddInputNode("ComponentPose", ConvertStructToAnimNode(ComponentPoseNodeStruct));
         }
     }
